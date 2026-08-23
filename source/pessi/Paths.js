@@ -13,6 +13,14 @@
         return ASSET_ROOT + "/music/" + name + ".ogg";
     }
 
+    function vertShader(name) {
+        return ASSET_ROOT + "/shaders/" + name + ".vert";
+    }
+
+    function fragShader(name) {
+        return ASSET_ROOT + "/shaders/" + name + ".frag";
+    }
+
     function file(path, extension) {
         return ASSET_ROOT + "/" + path + "." + extension;
     }
@@ -21,6 +29,8 @@
         image: image,
         sound: sound,
         music: music,
+        vertShader: vertShader,
+        fragShader: fragShader,
         file: file
     };
 })();
