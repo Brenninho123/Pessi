@@ -8,9 +8,10 @@
     var fps = 0;
     var fpsAccumulator = 0;
     var fpsFrames = 0;
+    var booted = false;
 
     function resizeCanvas() {
-        var dpr = window.devicePixelRatio || 1;
+        var dpr = ScreenUtil.getDevicePixelRatio();
         var rect = container.getBoundingClientRect();
 
         canvas.width = rect.width * dpr;
@@ -68,16 +69,15 @@
 
     var states = {
         MainMenu: MainMenuState,
-        Options: OptionsState
+        Options: OptionsState,
+        Play: PlayState
     };
 
     function handleMenuSelect(e) {
         var choice = e.detail;
 
         if (choice === "Play") {
-            if (states.PlayState) {
-                switchState(states.PlayState);
-            }
+            switchState(states.Play);
         } else if (choice === "Options") {
             switchState(states.Options);
         } else if (choice === "Back") {
@@ -116,6 +116,45 @@
         console.error("[Pessi] " + message + " at " + source + ":" + lineno + ":" + colno);
     }
 
+    function applyMobileLayout() {
+        var mobile = ScreenUtil.isMobile();
+
+        if (mobile) {
+            VirtualPad.show();
+        } else {
+            VirtualPad.hide();
+        }
+
+        document.body.classList.toggle("is-mobile", mobile);
+        document.body.classList.toggle("is-desktop", !mobile);
+        document.body.classList.toggle("is-touch", ScreenUtil.isTouchDevice());
+        document.body.classList.toggle("is-standalone", ScreenUtil.isStandalone());
+    }
+
+    function setupOrientationHandling() {
+        ScreenUtil.onOrientationChange(function () {
+            setTimeout(function () {
+                setViewportHeight();
+                resizeCanvas();
+                applyMobileLayout();
+            }, 100);
+        });
+    }
+
+    function boot() {
+        if (booted) {
+            return;
+        }
+        booted = true;
+
+        Controls.init();
+        VirtualPad.init();
+
+        switchState(states.MainMenu);
+
+        requestAnimationFrame(gameLoop);
+    }
+
     function init() {
         window.onerror = onError;
 
@@ -123,20 +162,20 @@
 
         setViewportHeight();
         resizeCanvas();
-        preventDoubleTapZoom();
-        preventOverscroll();
+        applyMobileLayout();
+
+        if (ScreenUtil.isTouchDevice()) {
+            preventDoubleTapZoom();
+            preventOverscroll();
+        }
 
         window.addEventListener("resize", function () {
             setViewportHeight();
             resizeCanvas();
+            applyMobileLayout();
         });
 
-        window.addEventListener("orientationchange", function () {
-            setTimeout(function () {
-                setViewportHeight();
-                resizeCanvas();
-            }, 100);
-        });
+        setupOrientationHandling();
 
         window.addEventListener("game-pause", function () {
             paused = true;
@@ -153,12 +192,7 @@
         document.addEventListener("gesturestart", preventGesture);
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
-        Controls.init();
-        VirtualPad.init();
-
-        switchState(states.MainMenu);
-
-        requestAnimationFrame(gameLoop);
+        boot();
     }
 
     window.Pessi = {
@@ -168,6 +202,9 @@
         },
         getFps: function () {
             return fps;
+        },
+        isPaused: function () {
+            return paused;
         }
     };
 
