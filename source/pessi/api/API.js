@@ -30,11 +30,28 @@
         return Promise.race([promise, timeoutPromise]);
     }
 
+    function getAuthHeader() {
+        if (window.DiscordLogin && DiscordLogin.isLoggedIn()) {
+            var token = JSON.parse(sessionStorage.getItem("pessi_discord_token"));
+            if (token) {
+                return (token.tokenType || "Bearer") + " " + token.accessToken;
+            }
+        }
+        return null;
+    }
+
     function request(method, endpoint, options) {
         options = options || {};
 
         var url = buildUrl(endpoint, options.params);
         var headers = { "Content-Type": "application/json" };
+
+        if (options.auth !== false) {
+            var authHeader = getAuthHeader();
+            if (authHeader) {
+                headers.Authorization = authHeader;
+            }
+        }
 
         if (options.headers) {
             for (var key in options.headers) {
@@ -52,6 +69,10 @@
         }
 
         var fetchPromise = fetch(url, fetchOptions).then(function (response) {
+            if (response.status === 401) {
+                window.dispatchEvent(new Event("api-unauthorized"));
+            }
+
             if (!response.ok) {
                 throw new Error("Request failed with status " + response.status);
             }
@@ -68,20 +89,20 @@
         return withTimeout(fetchPromise, options.timeout || TIMEOUT_MS);
     }
 
-    function get(endpoint, params) {
-        return request("GET", endpoint, { params: params });
+    function get(endpoint, params, options) {
+        return request("GET", endpoint, Object.assign({ params: params }, options));
     }
 
-    function post(endpoint, body) {
-        return request("POST", endpoint, { body: body });
+    function post(endpoint, body, options) {
+        return request("POST", endpoint, Object.assign({ body: body }, options));
     }
 
-    function put(endpoint, body) {
-        return request("PUT", endpoint, { body: body });
+    function put(endpoint, body, options) {
+        return request("PUT", endpoint, Object.assign({ body: body }, options));
     }
 
-    function del(endpoint) {
-        return request("DELETE", endpoint);
+    function del(endpoint, options) {
+        return request("DELETE", endpoint, options);
     }
 
     function setBaseUrl(url) {
