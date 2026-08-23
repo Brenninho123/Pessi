@@ -10,6 +10,112 @@
     var fpsFrames = 0;
     var booted = false;
 
+    var SAVE_KEY = "pessi_save_data";
+    var SAVE_VERSION = 1;
+
+    var defaultSaveData = {
+        version: SAVE_VERSION,
+        settings: {
+            musicVolume: 1,
+            soundVolume: 1,
+            fullscreen: false
+        },
+        keyBinds: null,
+        progress: {}
+    };
+
+    var saveData = null;
+    var saveDebounceTimer = null;
+
+    function loadSave() {
+        var raw = localStorage.getItem(SAVE_KEY);
+
+        if (!raw) {
+            saveData = JSON.parse(JSON.stringify(defaultSaveData));
+            return saveData;
+        }
+
+        try {
+            var parsed = JSON.parse(raw);
+
+            if (parsed.version !== SAVE_VERSION) {
+                parsed = migrateSave(parsed);
+            }
+
+            saveData = Object.assign(JSON.parse(JSON.stringify(defaultSaveData)), parsed);
+            saveData.settings = Object.assign({}, defaultSaveData.settings, parsed.settings);
+        } catch (e) {
+            saveData = JSON.parse(JSON.stringify(defaultSaveData));
+        }
+
+        return saveData;
+    }
+
+    function migrateSave(oldData) {
+        oldData.version = SAVE_VERSION;
+        return oldData;
+    }
+
+    function writeSave() {
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        } catch (e) {
+            console.error("[Pessi] failed to write save data");
+        }
+    }
+
+    function persistSave() {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = setTimeout(writeSave, 300);
+    }
+
+    function getSetting(key) {
+        return saveData.settings[key];
+    }
+
+    function setSetting(key, value) {
+        saveData.settings[key] = value;
+        persistSave();
+        window.dispatchEvent(new CustomEvent("settings-changed", { detail: { key: key, value: value } }));
+    }
+
+    function getProgress(key) {
+        return saveData.progress[key];
+    }
+
+    function setProgress(key, value) {
+        saveData.progress[key] = value;
+        persistSave();
+    }
+
+    function saveKeyBinds() {
+        saveData.keyBinds = Controls.getBinds();
+        persistSave();
+    }
+
+    function loadKeyBinds() {
+        if (saveData.keyBinds) {
+            for (var action in saveData.keyBinds) {
+                var keys = saveData.keyBinds[action];
+                if (keys && keys[0]) {
+                    Controls.rebind(action, keys[0]);
+                }
+            }
+        }
+    }
+
+    function resetSave() {
+        saveData = JSON.parse(JSON.stringify(defaultSaveData));
+        writeSave();
+        Controls.resetBinds();
+    }
+
+    function applySettingsToSystems() {
+        if (getSetting("fullscreen") && !document.fullscreenElement) {
+            VirtualPad.toggleFullscreen();
+        }
+    }
+
     function resizeCanvas() {
         var dpr = ScreenUtil.getDevicePixelRatio();
         var rect = container.getBoundingClientRect();
@@ -97,7 +203,8 @@
     }
 
     function gameLoop(timestamp) {
-        var delta = lastTime ? (timestamp - lastTime) / 1000 : 0;
+        var delta = lastTime ? (timestamp - timestamp) / 1000 : 0;
+        delta = lastTime ? (timestamp - lastTime) / 1000 : 0;
         lastTime = timestamp;
 
         if (!paused) {
@@ -147,8 +254,11 @@
         }
         booted = true;
 
+        loadSave();
         Controls.init();
+        loadKeyBinds();
         VirtualPad.init();
+        applySettingsToSystems();
 
         switchState(states.MainMenu);
 
@@ -187,6 +297,7 @@
         });
 
         window.addEventListener("menu-select", handleMenuSelect);
+        window.addEventListener("beforeunload", writeSave);
 
         document.addEventListener("contextmenu", preventGesture);
         document.addEventListener("gesturestart", preventGesture);
@@ -205,6 +316,15 @@
         },
         isPaused: function () {
             return paused;
+        },
+        save: {
+            getSetting: getSetting,
+            setSetting: setSetting,
+            getProgress: getProgress,
+            setProgress: setProgress,
+            saveKeyBinds: saveKeyBinds,
+            reset: resetSave,
+            write: writeSave
         }
     };
 
