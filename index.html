@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="lightblue">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pessi">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
     <title>Pessi</title>
     <style>
         html, body {
@@ -12,6 +19,9 @@
             height: 100%;
             background-color: lightblue;
             overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #game-container {
@@ -20,6 +30,8 @@
             align-items: center;
             width: 100%;
             height: 100%;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            box-sizing: border-box;
         }
 
         canvas {
@@ -27,11 +39,96 @@
             max-width: 100%;
             max-height: 100%;
         }
+
+        #fullscreen-button {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        #touch-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #touch-controls.visible {
+            display: flex;
+        }
+
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 48px);
+            grid-template-rows: repeat(3, 48px);
+            gap: 4px;
+            pointer-events: auto;
+        }
+
+        .dpad button {
+            background: rgba(255, 255, 255, 0.25);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .action-buttons button {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
+    </div>
+
+    <button id="fullscreen-button">⛶</button>
+
+    <div id="touch-controls">
+        <div class="dpad">
+            <div></div>
+            <button data-action="UP">▲</button>
+            <div></div>
+            <button data-action="LEFT">◀</button>
+            <div></div>
+            <button data-action="RIGHT">▶</button>
+            <div></div>
+            <button data-action="DOWN">▼</button>
+            <div></div>
+        </div>
+        <div class="action-buttons">
+            <button data-action="BACK">B</button>
+            <button data-action="ACCEPT">A</button>
+        </div>
     </div>
 
     <script src="./source/pessi/Paths.js"></script>
