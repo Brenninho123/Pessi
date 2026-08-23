@@ -24,6 +24,7 @@
     var pressed = {};
     var justPressed = {};
     var justReleased = {};
+    var virtualPressed = {};
     var gamepadIndex = null;
 
     function resolveAction(key) {
@@ -99,12 +100,23 @@
             if (action === "UP" && pad.axes[1] < -axisThreshold) state = true;
             if (action === "DOWN" && pad.axes[1] > axisThreshold) state = true;
 
-            setPressed(action, state);
+            if (!virtualPressed[action]) {
+                setPressed(action, state);
+            }
+        }
+    }
+
+    function pollVirtual() {
+        for (var action in virtualPressed) {
+            if (virtualPressed[action]) {
+                setPressed(action, true);
+            }
         }
     }
 
     function update() {
         pollGamepad();
+        pollVirtual();
 
         for (var action in justPressed) {
             justPressed[action] = false;
@@ -142,6 +154,13 @@
         return JSON.parse(JSON.stringify(keyBinds));
     }
 
+    function setVirtual(action, state) {
+        virtualPressed[action] = state;
+        if (!state) {
+            setPressed(action, false);
+        }
+    }
+
     function init() {
         window.addEventListener("keydown", onKeyDown);
         window.addEventListener("keyup", onKeyUp);
@@ -149,6 +168,7 @@
         window.addEventListener("gamepaddisconnected", onGamepadDisconnected);
         window.addEventListener("blur", function () {
             pressed = {};
+            virtualPressed = {};
         });
     }
 
@@ -160,6 +180,7 @@
         justReleased: isJustReleased,
         rebind: rebind,
         resetBinds: resetBinds,
-        getBinds: getBinds
+        getBinds: getBinds,
+        setVirtual: setVirtual
     };
 })();
