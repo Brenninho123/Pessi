@@ -67,7 +67,8 @@
     }
 
     var states = {
-        MainMenu: MainMenuState
+        MainMenu: MainMenuState,
+        Options: OptionsState
     };
 
     function handleMenuSelect(e) {
@@ -78,9 +79,9 @@
                 switchState(states.PlayState);
             }
         } else if (choice === "Options") {
-            if (states.OptionsState) {
-                switchState(states.OptionsState);
-            }
+            switchState(states.Options);
+        } else if (choice === "Back") {
+            switchState(states.MainMenu);
         }
     }
 
@@ -117,6 +118,8 @@
 
     function init() {
         window.onerror = onError;
+
+        DiscordLogin.handleRedirect();
 
         setViewportHeight();
         resizeCanvas();
