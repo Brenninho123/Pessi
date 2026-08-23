@@ -1,5 +1,5 @@
 (function () {
-    var keyBinds = {
+    var defaultBinds = {
         LEFT: ["ArrowLeft", "a"],
         DOWN: ["ArrowDown", "s"],
         UP: ["ArrowUp", "w"],
@@ -9,9 +9,22 @@
         PAUSE: ["Escape", "p"]
     };
 
+    var gamepadBinds = {
+        LEFT: [14],
+        DOWN: [13],
+        UP: [12],
+        RIGHT: [15],
+        ACCEPT: [0],
+        BACK: [1],
+        PAUSE: [9]
+    };
+
+    var keyBinds = JSON.parse(JSON.stringify(defaultBinds));
+
     var pressed = {};
     var justPressed = {};
     var justReleased = {};
+    var gamepadIndex = null;
 
     function resolveAction(key) {
         for (var action in keyBinds) {
@@ -22,30 +35,77 @@
         return null;
     }
 
-    function onKeyDown(e) {
-        var action = resolveAction(e.key);
-        if (!action) {
-            return;
-        }
-
-        if (!pressed[action]) {
+    function setPressed(action, state) {
+        if (state && !pressed[action]) {
             justPressed[action] = true;
         }
+        if (!state && pressed[action]) {
+            justReleased[action] = true;
+        }
+        pressed[action] = state;
+    }
 
-        pressed[action] = true;
+    function onKeyDown(e) {
+        var action = resolveAction(e.key);
+        if (action) {
+            setPressed(action, true);
+        }
     }
 
     function onKeyUp(e) {
         var action = resolveAction(e.key);
-        if (!action) {
+        if (action) {
+            setPressed(action, false);
+        }
+    }
+
+    function onGamepadConnected(e) {
+        gamepadIndex = e.gamepad.index;
+    }
+
+    function onGamepadDisconnected(e) {
+        if (gamepadIndex === e.gamepad.index) {
+            gamepadIndex = null;
+        }
+    }
+
+    function pollGamepad() {
+        if (gamepadIndex === null) {
             return;
         }
 
-        pressed[action] = false;
-        justReleased[action] = true;
+        var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        var pad = pads[gamepadIndex];
+
+        if (!pad) {
+            return;
+        }
+
+        for (var action in gamepadBinds) {
+            var buttons = gamepadBinds[action];
+            var state = false;
+
+            for (var i = 0; i < buttons.length; i++) {
+                var button = pad.buttons[buttons[i]];
+                if (button && button.pressed) {
+                    state = true;
+                    break;
+                }
+            }
+
+            var axisThreshold = 0.5;
+            if (action === "LEFT" && pad.axes[0] < -axisThreshold) state = true;
+            if (action === "RIGHT" && pad.axes[0] > axisThreshold) state = true;
+            if (action === "UP" && pad.axes[1] < -axisThreshold) state = true;
+            if (action === "DOWN" && pad.axes[1] > axisThreshold) state = true;
+
+            setPressed(action, state);
+        }
     }
 
     function update() {
+        pollGamepad();
+
         for (var action in justPressed) {
             justPressed[action] = false;
         }
@@ -66,9 +126,27 @@
         return !!justReleased[action];
     }
 
+    function rebind(action, key) {
+        if (!keyBinds[action]) {
+            return false;
+        }
+        keyBinds[action] = [key];
+        return true;
+    }
+
+    function resetBinds() {
+        keyBinds = JSON.parse(JSON.stringify(defaultBinds));
+    }
+
+    function getBinds() {
+        return JSON.parse(JSON.stringify(keyBinds));
+    }
+
     function init() {
         window.addEventListener("keydown", onKeyDown);
         window.addEventListener("keyup", onKeyUp);
+        window.addEventListener("gamepadconnected", onGamepadConnected);
+        window.addEventListener("gamepaddisconnected", onGamepadDisconnected);
         window.addEventListener("blur", function () {
             pressed = {};
         });
@@ -79,6 +157,9 @@
         update: update,
         pressed: isPressed,
         justPressed: isJustPressed,
-        justReleased: isJustReleased
+        justReleased: isJustReleased,
+        rebind: rebind,
+        resetBinds: resetBinds,
+        getBinds: getBinds
     };
 })();
