@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Pessi">
-    <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
     <title>Pessi</title>
     <style>
@@ -89,6 +88,10 @@
             font-size: 20px;
         }
 
+        .dpad button.pressed {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
         .action-buttons {
             display: flex;
             gap: 12px;
@@ -103,6 +106,10 @@
             background: rgba(255, 255, 255, 0.25);
             color: #fff;
             font-size: 16px;
+        }
+
+        .action-buttons button.pressed {
+            background: rgba(255, 255, 255, 0.5);
         }
     </style>
 </head>
@@ -138,6 +145,7 @@
     <script src="./source/pessi/backend/Controls.js"></script>
     <script src="./source/pessi/backend/Camera.js"></script>
     <script src="./source/pessi/shader/Shader.js"></script>
+    <script src="./source/pessi/mobile/controls/VirtualPad.js"></script>
     <script src="./source/pessi/menus/MainMenuState.js"></script>
     <script src="./source/pessi/menus/OptionsState.js"></script>
     <script src="./source/Main.js"></script>
