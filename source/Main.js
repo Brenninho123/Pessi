@@ -154,6 +154,7 @@
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
         Controls.init();
+        VirtualPad.init();
 
         switchState(states.MainMenu);
 
