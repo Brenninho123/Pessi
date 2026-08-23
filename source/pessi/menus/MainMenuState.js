@@ -9,6 +9,9 @@
         this.background = new Image();
         this.background.src = Paths.image("menuBG");
 
+        this.discordUser = null;
+        this.discordLoading = false;
+
         this.onKeyDown = this.onKeyDown.bind(this);
         this.render = this.render.bind(this);
     }
@@ -19,7 +22,26 @@
         window.addEventListener("game-resume", this.resume.bind(this));
 
         this.active = true;
+        this.refreshDiscordStatus();
+
         requestAnimationFrame(this.render);
+    };
+
+    MainMenuState.prototype.refreshDiscordStatus = function () {
+        if (!DiscordLogin.isLoggedIn()) {
+            this.discordUser = null;
+            return;
+        }
+
+        this.discordLoading = true;
+
+        DiscordLogin.getCurrentUser().then(function (user) {
+            this.discordUser = user;
+            this.discordLoading = false;
+        }.bind(this)).catch(function () {
+            this.discordUser = null;
+            this.discordLoading = false;
+        }.bind(this));
     };
 
     MainMenuState.prototype.onKeyDown = function (e) {
@@ -42,6 +64,7 @@
 
     MainMenuState.prototype.resume = function () {
         this.active = true;
+        this.refreshDiscordStatus();
         requestAnimationFrame(this.render);
     };
 
@@ -66,6 +89,20 @@
         for (var i = 0; i < this.options.length; i++) {
             ctx.fillStyle = i === this.selected ? "#ffffff" : "#888888";
             ctx.fillText(this.options[i], width / 2, height / 2 + i * 60);
+        }
+
+        ctx.font = "20px sans-serif";
+        ctx.textAlign = "left";
+
+        if (this.discordLoading) {
+            ctx.fillStyle = "#cccccc";
+            ctx.fillText("Connecting to Discord...", 20, height - 20);
+        } else if (this.discordUser) {
+            ctx.fillStyle = "#7289da";
+            ctx.fillText("Logged in as " + this.discordUser.username, 20, height - 20);
+        } else {
+            ctx.fillStyle = "#888888";
+            ctx.fillText("Not logged in", 20, height - 20);
         }
 
         requestAnimationFrame(this.render);
