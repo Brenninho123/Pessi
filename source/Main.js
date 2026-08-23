@@ -2,6 +2,13 @@
     var canvas = document.getElementById("game-canvas");
     var container = document.getElementById("game-container");
 
+    var currentState = null;
+    var paused = false;
+    var lastTime = 0;
+    var fps = 0;
+    var fpsAccumulator = 0;
+    var fpsFrames = 0;
+
     function resizeCanvas() {
         var dpr = window.devicePixelRatio || 1;
         var rect = container.getBoundingClientRect();
@@ -10,6 +17,10 @@
         canvas.height = rect.height * dpr;
         canvas.style.width = rect.width + "px";
         canvas.style.height = rect.height + "px";
+
+        if (currentState && typeof currentState.onResize === "function") {
+            currentState.onResize(rect.width, rect.height);
+        }
     }
 
     function setViewportHeight() {
@@ -46,7 +57,67 @@
         }
     }
 
+    function switchState(StateClass) {
+        if (currentState && typeof currentState.destroy === "function") {
+            currentState.destroy();
+        }
+
+        currentState = new StateClass();
+        currentState.create();
+    }
+
+    var states = {
+        MainMenu: MainMenuState
+    };
+
+    function handleMenuSelect(e) {
+        var choice = e.detail;
+
+        if (choice === "Play") {
+            if (states.PlayState) {
+                switchState(states.PlayState);
+            }
+        } else if (choice === "Options") {
+            if (states.OptionsState) {
+                switchState(states.OptionsState);
+            }
+        }
+    }
+
+    function updateFps(delta) {
+        fpsAccumulator += delta;
+        fpsFrames++;
+
+        if (fpsAccumulator >= 1) {
+            fps = fpsFrames;
+            fpsFrames = 0;
+            fpsAccumulator = 0;
+        }
+    }
+
+    function gameLoop(timestamp) {
+        var delta = lastTime ? (timestamp - lastTime) / 1000 : 0;
+        lastTime = timestamp;
+
+        if (!paused) {
+            Controls.update();
+            updateFps(delta);
+
+            if (currentState && typeof currentState.update === "function") {
+                currentState.update(delta);
+            }
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function onError(message, source, lineno, colno, error) {
+        console.error("[Pessi] " + message + " at " + source + ":" + lineno + ":" + colno);
+    }
+
     function init() {
+        window.onerror = onError;
+
         setViewportHeight();
         resizeCanvas();
         preventDoubleTapZoom();
@@ -64,10 +135,37 @@
             }, 100);
         });
 
+        window.addEventListener("game-pause", function () {
+            paused = true;
+        });
+
+        window.addEventListener("game-resume", function () {
+            paused = false;
+            lastTime = 0;
+        });
+
+        window.addEventListener("menu-select", handleMenuSelect);
+
         document.addEventListener("contextmenu", preventGesture);
         document.addEventListener("gesturestart", preventGesture);
         document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        Controls.init();
+
+        switchState(states.MainMenu);
+
+        requestAnimationFrame(gameLoop);
     }
+
+    window.Pessi = {
+        switchState: switchState,
+        registerState: function (name, StateClass) {
+            states[name] = StateClass;
+        },
+        getFps: function () {
+            return fps;
+        }
+    };
 
     document.addEventListener("DOMContentLoaded", init);
 })();
