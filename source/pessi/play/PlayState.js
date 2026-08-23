@@ -11,7 +11,7 @@
             width: 40,
             height: 40,
             speed: 300,
-            color: "#ffcc00"
+            sprite: Assets.getImage("player")
         };
 
         this.paused = false;
@@ -114,13 +114,16 @@
 
         this.camera.begin(ctx);
 
-        ctx.fillStyle = this.player.color;
-        ctx.fillRect(
-            this.player.x - this.player.width / 2,
-            this.player.y - this.player.height / 2,
-            this.player.width,
-            this.player.height
-        );
+        var sprite = this.player.sprite;
+        var drawX = this.player.x - this.player.width / 2;
+        var drawY = this.player.y - this.player.height / 2;
+
+        if (sprite.complete && sprite.naturalWidth > 0) {
+            ctx.drawImage(sprite, drawX, drawY, this.player.width, this.player.height);
+        } else {
+            ctx.fillStyle = "#ffcc00";
+            ctx.fillRect(drawX, drawY, this.player.width, this.player.height);
+        }
 
         this.camera.end(ctx);
 
