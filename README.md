@@ -1,2 +1,2 @@
 # Pessi
-a cool game
+a cool game made with Aura
